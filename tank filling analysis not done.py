@@ -31,8 +31,8 @@ for i in T_ext_prefill:
     delta_p_for_vent = PropsSI('P', 'T', i, 'Q', 0, Fluid)/1000  # [kPa] We are redefining it in psi. Q here is the vapor quality, Q=0 since saturated liquid in the tank. This line gives the vapor pressure of the nitrous. assume same as tank pressure
     SG_n2o_int=int_liquid_density/1000  #[unitless]pretty sure that the units match, [should be kg/m^3 for both]
     delta_p_for_fill = (P_ext-1034.21)/2 #[kPa] assuming that the delta p will be linear and the average will be half of difference of initial pressure in external tank, and the ~150psi left in tank when it empties fully
-    m_dot_orif = ((c_v_vent*int_liquid_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_vent)*3600)) #[NOT SURE] taken from eqn for volume flowrate from here: https://www.engineeringtoolbox.com/flow-coefficients-d_277.html
-    fill_rate = ((c_v_fill_solenoid*int_liquid_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_fill)*3600)) - m_dot_orif #[NOT SURE]
+    m_dot_orif = ((c_v_vent*int_liquid_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_vent)*3600)) #[kg/s] taken from eqn for volume flowrate from here: https://www.engineeringtoolbox.com/flow-coefficients-d_277.html
+    fill_rate = ((c_v_fill_solenoid*int_liquid_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_fill)*3600)) - m_dot_orif #[kg/s]
     fill_time = mass_n2o / fill_rate  # [sec] time to fill while venting at the m_dot_orif
     nitrous_waste=m_dot_orif*fill_time #[kg]
     mass_fluid_in_flex_line = int_liquid_density*(diam/2)**2*math.pi*length #[kg], want to ensure not too much that it detracts from how much we can fill.
