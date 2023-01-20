@@ -59,3 +59,4 @@ for item in final_list:
     for i in item:
         print('{:<35f}'.format(i),end='')
     print()
+######find time to reduce pressure a certain amount through the bleed valve with the fill line shut off, starting at pressure P1 and ending at P2 for a delta of P2-P1, over a time t##################################################################################################################################################
