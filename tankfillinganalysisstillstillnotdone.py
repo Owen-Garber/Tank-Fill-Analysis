@@ -69,23 +69,23 @@ while initial_fill < .85:
     initial_fill += .025
     fill_list.append(initial_fill)
 
-t = 0.0
-R = 8.3144598 #J/(K*mol) i think?
-n_i = (P_ext*V_ext)/(R*T_ext_prefill[-1])
+t = 0.0 #[s] initialize as zero
+R = 8.3144598 #[J/(K*mol)] gas constant
+print("P_ext is", P_ext)
+n_i = (P_ext*V_ext)/(R*T_ext_prefill[-1]) #[mols]
 n_dot_orif = m_dot_orif/44.03 #converts m_dot_orif from kg/s to kmol/s
-delta_p = 0.0
+delta_p = 0.0 #[Pa] initializing as zero
 
 for i in fill_list:
     for u in T_ext_prefill:
         P_i = PropsSI('P', 'T', u, 'Q', 1,Fluid)  # [Pa]hopefully a matrix of vapor pressures for external tank before filling
         delta_p = 0.0
-        while delta_p < 1000000:
-            n_f = n_i - n_dot_orif * t
-            n_i = n_f
+        while delta_p < 1000000: #[Pa]
+            n_f = n_i - n_dot_orif * t #[mols] creating new number of moles
+            n_i = n_f #redefining n_i as the new number of moles, n_f
             P_f = (n_f * R * u) / ((1 - i) * V_ext)
             t += .005
             delta_p = P_i-P_f
-            print(delta_p)
-        print(t)
-        print('Ullage % is:',(1-i),'Temp is:',u)
-        #lhflkehafl
+            #print(delta_p)
+        #print(t)
+        #print('Ullage % is:',(1-i),'Temp is:',u)
