@@ -63,29 +63,52 @@ for item in final_list:
     print()
 ######find time to reduce pressure a certain amount through the bleed valve with the fill line shut off, starting at pressure P1 and ending at P2 for a delta of P2-P1, over a time t##################################################################################################################################################
 
-fill_list = []
-initial_fill = 0
-while initial_fill < .85:
-    initial_fill += .025
-    fill_list.append(initial_fill)
+fill_percent_list = []
+initial_fill_percent = 0
+while initial_fill_percent < .85:
+    initial_fill_percent += .025
+    fill_percent_list.append(initial_fill_percent)
 
-t = 0.0 #[s] initialize as zero
 R = 8.3144598 #[J/(K*mol)] gas constant
-print("P_ext is", P_ext)
 n_i = (P_ext*V_ext)/(R*T_ext_prefill[-1]) #[mols]
-n_dot_orif = m_dot_orif/44.03 #converts m_dot_orif from kg/s to kmol/s
 delta_p = 0.0 #[Pa] initializing as zero
+delta_p_target = 1000000 #[Pa]
 
-for i in fill_list:
+####lists to output#############
+
+new_row_list=[]
+for i in fill_percent_list:
     for u in T_ext_prefill:
         P_i = PropsSI('P', 'T', u, 'Q', 1,Fluid)  # [Pa]hopefully a matrix of vapor pressures for external tank before filling
+        n_i = (P_i * V_ext*(1-i)) / (R * u) #[mols]
         delta_p = 0.0
-        while delta_p < 1000000: #[Pa]
+        t = 0.0  # [s] initialize as zero
+        dt=.001#[s] increments
+        while delta_p < delta_p_target: #[Pa]
+            int_liquid_density=PropsSI ('D','P', P_i ,'Q' ,0 , Fluid ) # [should be kg/m^3] this is reasonable according to internet
+            m_dot_orif = ((c_v_vent * int_liquid_density) / (11.6 * math.sqrt((int_liquid_density/1000) / P_i) * 3600))  # [kg/s]
+            n_dot_orif=m_dot_orif/44.013 #converts m_dot_orif from kg/s to [mol/s]
             n_f = n_i - n_dot_orif * t #[mols] creating new number of moles
             n_i = n_f #redefining n_i as the new number of moles, n_f
             P_f = (n_f * R * u) / ((1 - i) * V_ext)
-            t += .005
+            t += dt
             delta_p = P_i-P_f
-            #print(delta_p)
-        #print(t)
-        #print('Ullage % is:',(1-i),'Temp is:',u)
+            m_lost=m_dot_orif*dt
+            if delta_p > delta_p_target:
+                new_row_list.append([i,u,t,m_lost])
+print()
+print()
+print("##########################################################################################################################")
+print()
+print()
+NEW_HEADER = [ 'ullage percentage','Temp (K)','Time to vent target pressure (s)', 'm_lost [kg]']
+for item in NEW_HEADER:
+    print('{:<35s}'.format(item), end='')
+
+print()
+
+for item in new_row_list:
+
+    for i in item:
+            print('{:<35f}'.format(i), end='')
+    print()
