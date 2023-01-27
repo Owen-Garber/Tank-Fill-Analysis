@@ -34,6 +34,11 @@ for i in T_ext_prefill:
     #Add ullage fluid density
     delta_p_for_vent = PropsSI('P', 'T', i, 'Q', 1, Fluid)/1000  # [kPa] We are redefining it in psi. Q here is the vapor quality, Q=0 since saturated liquid in the tank. This line gives the vapor pressure of the nitrous. assume same as tank pressure
     SG_n2o_int=int_vapor_density/1000  #[unitless]pretty sure that the units match, [should be kg/m^3 for both]
+    ##################REALLY UNSURE IF WE SHOULD BE DOING SG OF N2O IN GASEOUS FORM. NOT SURE IF EQN HOLDS FOR GASSES##########################
+    ######### TRYING TO SOLVE BASED ON THIS: https://www.idealvalve.com/pdf/Flow-Calculation-for-Gases.pdf but cant find in metric yet
+    #########"When the upstream pressure equals or exceeds two times the downstream pressure DEFINITELY IN OUR CASE, it is known as a “choked flow” situation.
+    ######### This calls for use of a Critical flow formula, can't find in metric at the moment
+    #########################################################################################################################################
     delta_p_for_fill = (P_ext-1034.21)/2 #[kPa] assuming that the delta p will be linear and the average will be half of difference of initial pressure in external tank, and the ~150psi left in tank when it empties fully
     m_dot_orif = ((c_v_vent*int_vapor_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_vent)*3600)) #[kg/s] taken from eqn for volume flowrate from here: https://www.engineeringtoolbox.com/flow-coefficients-d_277.html
     m_dot_list.append(m_dot_orif)
