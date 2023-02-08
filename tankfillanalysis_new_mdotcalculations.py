@@ -27,8 +27,8 @@ total_nitrous = 9.07185 #kg of nitrous we have (abt 20 lbs)
 m_dot_list = []
 #################for loop to get info#######################################################################################################
 for i in T_ext_prefill:
-    P_ext = PropsSI('P', 'T', i, 'Q', 1, Fluid)/1000 #[kPa]hopefully a matrix of vapor pressures for external tank before filling
-    delta_p_for_vent = PropsSI('P', 'T', i, 'Q', 1, Fluid)  # [Pa] must be [Pa] for now to input into int_liquid_density. Q here is the vapor quality, Q=0 since saturated liquid in the tank. This line gives the vapor pressure of the nitrous. assume same as tank pressure
+    P_ext = PropsSI('P', 'T', i, 'Q', 1, Fluid)/1000 #[kPa]vapor pressures for external tank before filling
+    delta_p_for_vent = PropsSI('P', 'T', i, 'Q', 1, Fluid)  # [Pa] must be [Pa] for now to input into int_liquid_density. Q here is the vapor quality, Q=1 since gas in the tank. This line gives the vapor pressure of the nitrous. assume same as tank pressure
     int_liquid_density = PropsSI ('D','P', delta_p_for_vent ,'Q' ,0 , Fluid ) # [should be kg/m^3] this is reasonable according to internet
     int_vapor_density=PropsSI ('D','P', delta_p_for_vent ,'Q' ,1 , Fluid )
     #Add ullage fluid density
@@ -40,10 +40,9 @@ for i in T_ext_prefill:
     ######### This calls for use of a Critical flow formula, can't find in metric at the moment
     #########################################################################################################################################
     delta_p_for_fill = (P_ext-1034.21)/2 #[kPa] assuming that the delta p will be linear and the average will be half of difference of initial pressure in external tank, and the ~150psi left in tank when it empties fully
-    #m_dot_orif = ((c_v_vent*int_vapor_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_vent)*3600)) #[kg/s] taken from eqn for volume flowrate from here: https://www.engineeringtoolbox.com/flow-coefficients-d_277.html
-    #m_dot_orif = (c_v_vent*(P_recovery_factor*834)*P_i)/(sqrt(SG_n2o_int(i+460))) #arbitrary equation, need to figure out P_recovery_factor and P_i and convert units to kg/s
-    m_dot_orif_air = (4.09)*((P_ext*0.145038)+14.7)/94.7 #calculated using https://catalog.okeefecontrols.com/Download/TechBrief-GAS-FLOW-5-18-19.pdf, could be wrong
-    m_dot_orif = m_dot_orif_air/(sqrt(SG_n2o_int)) #again, used https://catalog.okeefecontrols.com/Download/TechBrief-GAS-FLOW-5-18-19.pdf
+
+    m_dot_orif = ((c_v_vent*int_vapor_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_vent)*3600)) #[kg/s] taken from eqn for volume flowrate from here: https://www.engineeringtoolbox.com/flow-coefficients-d_277.html
+
     m_dot_list.append(m_dot_orif)
     fill_rate = ((c_v_fill_solenoid*int_liquid_density)/(11.6*math.sqrt(SG_n2o_int/delta_p_for_fill)*3600)) - m_dot_orif #[kg/s]
     fill_time = mass_n2o / fill_rate  # [sec] time to fill while venting at the m_dot_orif
@@ -92,29 +91,36 @@ print()
 NEW_HEADER = [ 'ullage percentage','Temp (K)','Time to vent target pressure (s)', 'm_lost [kg]']
 for item in NEW_HEADER:
     print('{:<35s}'.format(item), end='')
-
 print()
 
+
+
+#####Try and get the time to depressurize a certain amount at different temps and fill percentages############################
 new_row_list=[]
 for i in fill_percent_list:
-    V_gas_n2o=V_ext*(1-i)
-    n_i = (P_ext*V_gas_n2o)/(R*T_ext_prefill[-1]) #[mols]
+    V_gas_n2o=V_ext*(1-i) #gives volume of gaseous n2o in tank when at a certain fill percentage
     for u in T_ext_prefill:
         P_i = PropsSI('P', 'T', u, 'Q', 1,Fluid)  # [Pa]hopefully a matrix of vapor pressures for external tank before filling
         n_i = (P_i * V_gas_n2o) / (R * u) #[mols]
+        #initialize for while loop
+        dt= .001 #[s] increments to iterate over
         delta_p = 0.0
         t = 0.0  # [s] initialize as zero
-        dt= .001 #[s] increments to iterate over
-        P_f=P_i
+        P_f=P_i #[Pa]
         m_lost=0
         while delta_p < delta_p_target: #[Pa]
             int_vapor_density=PropsSI ('D','P', P_f ,'Q' ,1 , Fluid ) # [should be kg/m^3] density of vapor only
-            m_dot_orif = ((c_v_vent * int_vapor_density) / (11.6 * math.sqrt((int_vapor_density/1000) / P_f) * 3600))  # [kg/s]
+            SG_n2o_int=int_vapor_density/1.225#[unitless, both in kg/m^3] 1.225 is density of air in kg/m^3
+            #m_dot_orif = (c_v_vent * (P_recovery_factor * 834) * P_i) / (sqrt(SG_n2o_int(i + 460)))  # arbitrary equation, need to figure out P_recovery_factor and P_i and convert units to kg/s
+            q_dot_orif_air_imperial = (4.09) * ((P_f * 0.000145038) + 14.7) / 94.7  #[scfh] calculated using https://catalog.okeefecontrols.com/Download/TechBrief-GAS-FLOW-5-18-19.pdf, could be wrong
+            q_dot_orif_air_si_units = q_dot_orif_air_imperial* 7.86579e-6 #[m^3/s] convert scfh to m^3/s
+            q_dot_orif_n2o=q_dot_orif_air_si_units / (math.sqrt(SG_n2o_int))  #[m^3/s] converts air flow to n2o flow, again, used https://catalog.okeefecontrols.com/Download/TechBrief-GAS-FLOW-5-18-19.pdf
+            m_dot_orif=q_dot_orif_n2o*int_vapor_density #[kg/s] mass flow rate out of orifice
             n_dot_orif=m_dot_orif/.044013 #converts m_dot_orif from kg/s to [mol/s]
-            n_f = n_i - (n_dot_orif * dt) #[mols] creating new number of moles
-            n_i = n_f #redefining n_i as the new number of moles, n_f
-            P_f = (n_f * R * u) / ( V_gas_n2o)
-            t += dt
+            n_f = n_i - (n_dot_orif * dt) #[mols] creating new number of moles by subtracting what was lost in the dt interval
+            n_i = n_f #[mols] redefining n_i as the new number of moles, n_f
+            P_f = (n_f * R * u) / (V_gas_n2o) #[Pa]
+            t += dt #[s]
             delta_p = P_i-P_f
             m_lost+=m_dot_orif*dt
             if delta_p > delta_p_target:
